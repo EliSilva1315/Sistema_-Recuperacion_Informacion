@@ -1,0 +1,26 @@
+// Main style file - imports all styles
+
+// Variables
+@import 'variables';
+
+// Base styles
+@import 'reset';
+@import 'typography';
+@import 'utilities';
+
+// Components
+@import 'components/buttons';
+@import 'components/search';
+@import 'components/results';
+@import 'components/loader';
+
+// Layout
+@import 'layout/header';
+@import 'layout/footer';
+@import 'layout/container';
+
+// Animations
+@import 'animations';
+
+// Responsive
+@import 'responsive';
