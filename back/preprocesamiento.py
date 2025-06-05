@@ -4,19 +4,13 @@ from nltk.tokenize import word_tokenize, regexp_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 import nltk
+from cargar_corpus import cargar_corpus 
 
 # Descargar recursos necesarios
 nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('wordnet')
 
-def cargar_corpus():
-
-    # Ruta del archivo corpus.jsonl
-    ruta_corpus = r"\gaming\corpus.jsonl"
-    corpusdf = pd.read_json(ruta_corpus, lines=True)
-
-    return corpusdf
 
 def preprocesar_texto():
 
