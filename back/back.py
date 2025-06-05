@@ -41,5 +41,5 @@ def search():
     })
 
 if __name__ == '__main__':
-    print("🚀 Backend iniciando en http://localhost:5000")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    print("🚀 Backend iniciando en http://localhost:3000")
+    app.run(debug=True, host='0.0.0.0', port=3000)

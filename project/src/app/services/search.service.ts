@@ -7,14 +7,13 @@ import { HttpClient } from '@angular/common/http';
 })
 export class SearchService {
   private _hasResults = false;
-  private backendUrl = 'http://localhost:5000';
+  private backendUrl = 'http://localhost:3000'; // Cambiado a puerto 3000
   
   constructor(private http: HttpClient) {}
   
   search(query: string): Observable<any> {
     this._hasResults = true;
     
-    // Conecta con tu backend Python
     return this.http.post(`${this.backendUrl}/search`, { query: query });
   }
   
