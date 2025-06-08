@@ -156,6 +156,10 @@ def busqueda_por_similitud_coseno(query, limit=10, threshold=0.1):
         feature_names = vectorizer.get_feature_names_out()
         query_terms = query_vector.toarray()[0]
         non_zero_indices = np.nonzero(query_terms)[0]
+        #hacer tf-idf de la query
+        print(f"🏷️ Términos no-cero en la query: {len(non_zero_indices)}")
+        print(f"🏷️ Términos únicos en la query: {len(set(feature_names[non_zero_indices]))}")
+        print("-" * 40)
         
         print(f"\n🏷️  TÉRMINOS Y PESOS TF-IDF DE LA QUERY:")
         print("-" * 40)
