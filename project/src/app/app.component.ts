@@ -53,10 +53,31 @@ export class AppComponent {
       return;
     }
     
-    // In a real application, this would be calling your backend API
-    this.searchService.search(query).subscribe(results => {
-      this.searchResults = results;
-      this.hasResults = true;
+    console.log('🔍 Buscando:', query);
+    
+    // Llamar al backend Flask
+    this.searchService.search(query).subscribe({
+      next: (response) => {
+        console.log('✅ Respuesta del backend:', response);
+        this.searchResults = response.results || [];
+        this.hasResults = true;
+        
+        // Mostrar información de la búsqueda
+        if (response.search_time) {
+          console.log(`⏱️ Tiempo de búsqueda: ${response.search_time}s`);
+        }
+        if (response.total !== undefined) {
+          console.log(`📊 Resultados encontrados: ${response.total}`);
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error en la búsqueda:', error);
+        this.searchResults = [];
+        this.hasResults = false;
+        
+        // Mostrar mensaje de error amigable
+        alert('Error al conectar con el servidor. Asegúrate de que el backend esté ejecutándose en http://localhost:3000');
+      }
     });
   }
 }

@@ -85,23 +85,33 @@ def preprocesar_query(query):
     Preprocesa la query usando el mismo pipeline que el corpus
     """
     try:
+        print(f"\n🔧 PREPROCESANDO QUERY:")
+        print("-" * 30)
+        print(f"  📝 Query original: '{query}'")
+        
         from nltk.tokenize import regexp_tokenize
         from nltk.corpus import stopwords
         from nltk.stem import WordNetLemmatizer
         
         # Normalizar con expresiones regulares (mismo patrón del corpus)
         tokens = regexp_tokenize(query.lower(), pattern=r'\w[a-z]+')
+        print(f"  🔤 Tokens después de regex: {tokens}")
         
         # Eliminar stopwords
         sw = set(stopwords.words('english'))
-        tokens = [t for t in tokens if t not in sw]
+        tokens_sin_sw = [t for t in tokens if t not in sw]
+        print(f"  🚫 Tokens sin stopwords: {tokens_sin_sw}")
         
         # Lematizar los tokens
         lemmatizer = WordNetLemmatizer()
-        tokens = [lemmatizer.lemmatize(t) for t in tokens]
+        tokens_lemmatizados = [lemmatizer.lemmatize(t) for t in tokens_sin_sw]
+        print(f"  🌱 Tokens lematizados: {tokens_lemmatizados}")
         
         # Unir tokens en string
-        return ' '.join(tokens)
+        resultado = ' '.join(tokens_lemmatizados)
+        print(f"  ✅ Query final: '{resultado}'")
+        
+        return resultado
         
     except Exception as e:
         print(f"❌ Error en preprocesamiento de query: {e}")
@@ -120,6 +130,10 @@ def busqueda_por_similitud_coseno(query, limit=10, threshold=0.1):
         list: Lista de documentos ordenados por similitud
     """
     try:
+        print("\n" + "="*60)
+        print(f"🚀 INICIANDO BÚSQUEDA")
+        print("="*60)
+        
         # Preprocesar la query igual que el corpus
         processed_query = preprocesar_query(query)
         print(f"🔍 Query original: '{query}'")
@@ -130,13 +144,50 @@ def busqueda_por_similitud_coseno(query, limit=10, threshold=0.1):
             return []
         
         # Vectorizar la consulta preprocesada
+        print(f"\n📊 VECTORIZACIÓN DE LA QUERY")
+        print("-" * 40)
         query_vector = vectorizer.transform([processed_query])
         
+        # Mostrar información del vector
+        print(f"📐 Dimensiones del vector de query: {query_vector.shape}")
+        print(f"🔢 Elementos no-cero en el vector: {query_vector.nnz}")
+        
+        # Mostrar algunos términos y sus pesos TF-IDF
+        feature_names = vectorizer.get_feature_names_out()
+        query_terms = query_vector.toarray()[0]
+        non_zero_indices = np.nonzero(query_terms)[0]
+        
+        print(f"\n🏷️  TÉRMINOS Y PESOS TF-IDF DE LA QUERY:")
+        print("-" * 40)
+        for idx in non_zero_indices[:10]:  # Mostrar solo los primeros 10
+            term = feature_names[idx]
+            weight = query_terms[idx]
+            print(f"  '{term}': {weight:.4f}")
+        if len(non_zero_indices) > 10:
+            print(f"  ... y {len(non_zero_indices) - 10} términos más")
+        
         # Calcular similitudes coseno
+        print(f"\n🧮 CALCULANDO SIMILITUDES COSENO")
+        print("-" * 40)
         similarities = cosine_similarity(query_vector, tfidf_matrix).flatten()
+        
+        print(f"📊 Similitudes calculadas: {len(similarities)}")
+        print(f"📈 Similitud máxima: {similarities.max():.4f}")
+        print(f"📉 Similitud mínima: {similarities.min():.4f}")
+        print(f"📊 Similitud promedio: {similarities.mean():.4f}")
         
         # Obtener índices ordenados por similitud (descendente)
         sorted_indices = np.argsort(similarities)[::-1]
+        
+        print(f"\n🏆 TOP 10 SIMILITUDES:")
+        print("-" * 40)
+        for i, idx in enumerate(sorted_indices[:10]):
+            sim_score = similarities[idx]
+            doc_title = documents_data[idx].get('title', f'Documento {idx}')[:50]
+            print(f"  {i+1:2d}. Doc {idx:3d}: {sim_score:.4f} - {doc_title}")
+        
+        print(f"\n🎯 FILTRADO POR UMBRAL >= {threshold}")
+        print("-" * 40)
         
         # Filtrar por umbral y límite
         results = []
@@ -145,6 +196,7 @@ def busqueda_por_similitud_coseno(query, limit=10, threshold=0.1):
             
             # Aplicar umbral mínimo
             if similarity_score < threshold:
+                print(f"  🔻 Doc {idx}: {similarity_score:.4f} < {threshold} (omitido)")
                 break
                 
             # Preparar resultado
@@ -157,12 +209,22 @@ def busqueda_por_similitud_coseno(query, limit=10, threshold=0.1):
                 doc['preview'] = doc['text_original'][:200] + "..." if len(doc['text_original']) > 200 else doc['text_original']
             
             results.append(doc)
+            print(f"  ✅ Doc {idx}: {similarity_score:.4f} - {doc.get('title', f'Documento {idx}')[:50]}")
             
             # Aplicar límite
             if len(results) >= limit:
+                print(f"  🛑 Límite alcanzado ({limit} resultados)")
                 break
         
-        print(f"✅ Encontrados {len(results)} resultados con similitud >= {threshold}")
+        print(f"\n✅ RESUMEN FINAL:")
+        print("-" * 40)
+        print(f"📝 Query original: '{query}'")
+        print(f"🔧 Query preprocesada: '{processed_query}'")
+        print(f"📊 Documentos procesados: {len(similarities)}")
+        print(f"🎯 Umbral usado: {threshold}")
+        print(f"🏆 Resultados finales: {len(results)}")
+        print(f"⏱️ Mejor similitud: {similarities.max():.4f}")
+        print("="*60)
         return results
         
     except Exception as e:

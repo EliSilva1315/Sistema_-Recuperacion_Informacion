@@ -24,13 +24,19 @@ import { FormsModule } from '@angular/forms';
         
         <div class="results-list">
           <ng-container *ngIf="displayedResults.length > 0; else noResults">
-            <div *ngFor="let result of displayedResults" class="result-item" [class.featured]="result.featured">
-              <a [href]="result.url" class="result-title" target="_blank">
-                <span *ngIf="result.featured" class="featured-badge">Destacado</span>
-                {{ result.title }}
+            <div *ngFor="let result of displayedResults" class="result-item">
+              <a [href]="result.url || '#'" class="result-title" target="_blank">
+                <span class="similarity-score">{{ (result.similarity_score * 100).toFixed(1) }}% coincidencia</span>
+                {{ result.title || 'Documento ' + result.id }}
               </a>
-              <span class="result-url">{{ result.url }}</span>
-              <p class="result-description">{{ result.description }}</p>
+              <span class="result-url" *ngIf="result.url">{{ result.url }}</span>
+              <p class="result-description">
+                {{ result.preview || result.text_original?.substring(0, 200) + '...' || 'Sin descripción disponible' }}
+              </p>
+              <div class="result-meta">
+                <span class="result-rank">Posición: {{ result.rank }}</span>
+                <span class="result-score">Score: {{ result.similarity_score?.toFixed(3) }}</span>
+              </div>
             </div>
           </ng-container>
           
@@ -81,6 +87,7 @@ import { FormsModule } from '@angular/forms';
 export class ResultsComponent implements OnChanges {
   @Input() searchResults: any[] = [];
   @Input() searchQuery = '';
+  @Input() searchResponse: any = null; // Nueva propiedad para recibir toda la respuesta
   
   loading = true;
   currentPage = 1;
@@ -96,51 +103,19 @@ export class ResultsComponent implements OnChanges {
       setTimeout(() => {
         this.processResults();
         this.loading = false;
-      }, 800);
+      }, 500); // Reducido para mostrar resultados más rápido
     }
   }
   
   processResults() {
     if (this.searchResults && this.searchResults.length > 0) {
+      // Usar datos reales del backend
       this.totalResults = this.searchResults.length;
+      console.log('📊 Procesando resultados del backend:', this.searchResults);
     } else {
-      this.generateMockResults();
+      this.totalResults = 0;
     }
     this.updatePagination();
-  }
-  
-  generateMockResults() {
-    const query = this.searchQuery.toLowerCase();
-    this.searchResults = [];
-    
-    this.addMockResult(
-      'Búsqueda Inteligente con IA - Guía Completa',
-      'https://example.com/busqueda-inteligente',
-      'Aprende todo sobre los sistemas de búsqueda inteligente potenciados por IA. Esta guía cubre los conceptos básicos y avanzados.',
-      new Date('2025-01-15'),
-      true
-    );
-    
-    for (let i = 0; i < 7; i++) {
-      this.addMockResult(
-        `${this.searchQuery} - Resultado ${i + 2}`,
-        `https://example.com/resultado-${i + 2}`,
-        `Este es un resultado de búsqueda para "${this.searchQuery}". Contiene información relacionada con tu búsqueda.`,
-        new Date(Date.now() - Math.random() * 10000000000)
-      );
-    }
-    
-    this.totalResults = this.searchResults.length;
-  }
-  
-  addMockResult(title: string, url: string, description: string, date: Date, featured: boolean = false) {
-    this.searchResults.push({
-      title,
-      url,
-      description,
-      date,
-      featured
-    });
   }
   
   updatePagination() {
