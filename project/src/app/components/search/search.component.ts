@@ -76,11 +76,12 @@ export class SearchComponent {
   hasResults = false;
   isListening = false;
   suggestions: string[] = [
-    'inteligencia artificial', 
-    'machine learning', 
-    'procesamiento de lenguaje natural',
-    'redes neuronales',
-    'deep learning'
+    'call of duty', 
+    'battle royale', 
+    'multiplayer games',
+    'first person shooter',
+    'gaming graphics',
+    'game mechanics'
   ];
   
   constructor(private searchService: SearchService) {
