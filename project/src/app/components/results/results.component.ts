@@ -26,7 +26,6 @@ import { FormsModule } from '@angular/forms';
           <ng-container *ngIf="displayedResults.length > 0; else noResults">
             <div *ngFor="let result of displayedResults" class="result-item" (click)="selectResult(result)" style="cursor:pointer;">
               <a [href]="result.url || '#'" class="result-title" target="_blank" (click)="$event.preventDefault()">
-                <span class="similarity-score">{{ (result.similarity_score * 100).toFixed(1) }}% coincidencia</span>
                 {{ result.title || 'Documento ' + result.id }}
               </a>
               <span class="result-url" *ngIf="result.url">{{ result.url }}</span>
@@ -34,8 +33,9 @@ import { FormsModule } from '@angular/forms';
                 {{ result.preview || result.text_original?.substring(0, 200) + '...' || 'Sin descripción disponible' }}
               </p>
               <div class="result-meta">
-                <span class="result-rank">Posición: {{ result.rank }}</span>
-                <span class="result-score">Score: {{ result.similarity_score?.toFixed(3) }}</span>
+                <span class="result-rank">Posición: {{ result.rank }}\n  (</span>
+                <span class="similarity-score">{{ (result.similarity_score * 100).toFixed(1) }}% coincidencia) </span>
+                <span class="result-score"> Score: {{ result.similarity_score?.toFixed(3) }}</span>
               </div>
             </div>
           </ng-container>
