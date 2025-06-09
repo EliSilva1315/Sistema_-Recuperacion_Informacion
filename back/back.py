@@ -9,7 +9,7 @@ import json
 from collections import Counter
 import time
 import re
-
+import pandas as pd
 app = Flask(__name__)
 CORS(app)
 
@@ -54,6 +54,27 @@ def inicializar_sistema():
         print(f"✅ Matriz TF-IDF creada: {tfidf_matrix.shape}")
         print(tfidf_matrix)
 
+        # Exportar matriz CSR a CSV en formato de coordenadas (fila, columna, valor)
+        try:
+            print("📝 Exportando matriz TF-IDF a CSV...")
+            # Convertir a formato COO para acceder fácilmente a coordenadas
+            coo_matrix = tfidf_matrix.tocoo()
+            
+            # Obtener nombres de características para incluir en el CSV
+            feature_names = vectorizer.get_feature_names_out()
+            
+            # Crear DataFrame con coordenadas y valores
+            coords_df = pd.DataFrame({
+                'termino_indice': coo_matrix.col,
+                'termino': [feature_names[idx] for idx in coo_matrix.col],
+                'valor_tfidf': coo_matrix.data
+            })
+            
+            # Guardar en CSV
+            coords_df.to_csv("matriz_tfidf.csv", index=False)
+            print(f"✅ Matriz TF-IDF exportada en formato de coordenadas: {coords_df.shape[0]} elementos no cero")
+        except Exception as e:
+            print(f"⚠️ Error al exportar matriz TF-IDF: {e}")
         # Crear modelo BM25
         print("🔄 Creando modelo BM25...")
         # Tokenizar el corpus para BM25 (usa tokens ya lematizados)
