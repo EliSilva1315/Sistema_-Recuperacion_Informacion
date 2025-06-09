@@ -12,7 +12,7 @@
 4. De manera general, El backend se levanta en http://localhost:3000
 
 ##Cómo ejecutar el front:
-Entra a la carpeta project/
-npm install
-ng serve
-Generalmente, desde el navegador se despliega en el http://localhost:4200
+1. Entra a la carpeta project/
+2. npm install
+3. ng serve
+4. Generalmente, desde el navegador se despliega en el http://localhost:4200
