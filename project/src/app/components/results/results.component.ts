@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -24,8 +24,8 @@ import { FormsModule } from '@angular/forms';
         
         <div class="results-list">
           <ng-container *ngIf="displayedResults.length > 0; else noResults">
-            <div *ngFor="let result of displayedResults" class="result-item">
-              <a [href]="result.url || '#'" class="result-title" target="_blank">
+            <div *ngFor="let result of displayedResults" class="result-item" (click)="selectResult(result)" style="cursor:pointer;">
+              <a [href]="result.url || '#'" class="result-title" target="_blank" (click)="$event.preventDefault()">
                 <span class="similarity-score">{{ (result.similarity_score * 100).toFixed(1) }}% coincidencia</span>
                 {{ result.title || 'Documento ' + result.id }}
               </a>
@@ -89,6 +89,8 @@ export class ResultsComponent implements OnChanges {
   @Input() searchQuery = '';
   @Input() searchResponse: any = null; // Nueva propiedad para recibir toda la respuesta
   
+  @Output() resultSelected = new EventEmitter<any>();
+
   loading = true;
   currentPage = 1;
   resultsPerPage = 5;
@@ -165,5 +167,9 @@ export class ResultsComponent implements OnChanges {
   
   clearSearch() {
     window.location.reload();
+  }
+
+  selectResult(result: any) {
+    this.resultSelected.emit(result);
   }
 }

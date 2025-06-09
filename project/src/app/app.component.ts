@@ -5,6 +5,7 @@ import { FooterComponent } from './components/layout/footer/footer.component';
 import { SearchComponent } from './components/search/search.component';
 import { ResultsComponent } from './components/results/results.component';
 import { SearchService } from './services/search.service';
+import { DocumentModalComponent } from './components/document-detail/document-modal.component';
 
 @Component({
   selector: 'app-root',
@@ -14,7 +15,8 @@ import { SearchService } from './services/search.service';
     HeaderComponent,
     FooterComponent,
     SearchComponent,
-    ResultsComponent
+    ResultsComponent,
+    DocumentModalComponent
   ],
   template: `
     <div class="search-layout" [class.has-results]="hasResults">
@@ -23,11 +25,12 @@ import { SearchService } from './services/search.service';
       <div class="search-content" [class.centered]="!hasResults">
         <div class="container">
           <app-search (searchSubmitted)="onSearchSubmitted($event)"></app-search>
-          <app-results *ngIf="hasResults" [searchResults]="searchResults" [searchQuery]="searchQuery"></app-results>
+          <app-results *ngIf="hasResults" [searchResults]="searchResults" [searchQuery]="searchQuery" (resultSelected)="onResultSelected($event)"></app-results>
         </div>
       </div>
 
       <app-footer></app-footer>
+      <app-document-modal *ngIf="selectedDocument" [title]="selectedDocument.title || 'Documento'" [text]="selectedDocument.text_original || selectedDocument.preview" (close)="closeModal()"></app-document-modal>
     </div>
   `,
   styles: [`
@@ -41,6 +44,7 @@ export class AppComponent {
   hasResults = false;
   searchResults: any[] = [];
   searchQuery = '';
+  selectedDocument: any = null;
 
   constructor(private searchService: SearchService) {}
 
@@ -79,5 +83,13 @@ export class AppComponent {
         alert('Error al conectar con el servidor. Asegúrate de que el backend esté ejecutándose en http://localhost:3000');
       }
     });
+  }
+
+  onResultSelected(result: any) {
+    this.selectedDocument = result;
+  }
+
+  closeModal() {
+    this.selectedDocument = null;
   }
 }
