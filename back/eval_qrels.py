@@ -4,6 +4,7 @@ import re
 from collections import defaultdict
 from back import busqueda_por_similitud_coseno, inicializar_sistema
 from datetime import datetime
+import random
 
 # Inicializar el sistema de recuperación
 def main():
@@ -143,7 +144,7 @@ def main():
         average_precisions.append(ap)
         consultas_validas += 1
         
-        # Guardar datos para tabla resumen
+        # Guardar datos para tabla resumen y los documentos recuperados
         query_details.append({
             'qid': qid,
             'precision': precision,
@@ -155,7 +156,8 @@ def main():
             'query_text': query_text,
             'relevant_ids': relevant_corpus_ids,
             'matches': matches,
-            'positions': positions
+            'positions': positions,
+            'retrieved_docs': retrieved[:5]  # Guardar los primeros 5 documentos recuperados
         })
     
     # Calcular MAP
@@ -212,6 +214,57 @@ def main():
         f.write(f"Recall promedio: {sum(recalls)/consultas_validas:.4f}\n")
         f.write(f"MAP: {MAP:.4f}\n\n")
 
+        # Siempre incluir 10 ejemplos de consultas y sus resultados
+        f.write("\n=======================================================\n")
+        f.write("EJEMPLOS DE CONSULTAS Y SUS RESULTADOS\n")
+        f.write("=======================================================\n\n")
+        
+        # Seleccionar 10 ejemplos: 5 mejores y 5 aleatorios (o peores si hay suficientes)
+        if query_details:
+            # Ordenar por AP descendente
+            sorted_details = sorted(query_details, key=lambda x: x['ap'], reverse=True)
+            
+            # Tomar los 5 mejores
+            best_examples = sorted_details[:5]
+            
+            # Para los 5 restantes, si hay más de 10 ejemplos, tomar una mezcla de medios y peores
+            remaining_examples = []
+            if len(sorted_details) > 10:
+                # Tomar 2 ejemplos de rendimiento medio y 3 peores
+                middle_start = len(sorted_details) // 2 - 1
+                remaining_examples = sorted_details[middle_start:middle_start+2] + sorted_details[-3:]
+            else:
+                # Si no hay suficientes, tomar los restantes
+                remaining_examples = sorted_details[5:10]
+            
+            # Combinar en una lista de hasta 10 ejemplos
+            examples = best_examples + remaining_examples
+            examples = examples[:10]  # Asegurar máximo 10 ejemplos
+            
+            # Mostrar los ejemplos
+            for i, detail in enumerate(examples):
+                qid = detail['qid']
+                f.write(f"\n-------------------------------------------------------\n")
+                f.write(f"EJEMPLO {i+1}: QUERY {qid}\n")
+                f.write(f"-------------------------------------------------------\n")
+                f.write(f"Texto de query: {detail['query_text']}\n\n")
+                
+                f.write(f"MÉTRICAS: Precision={detail['precision']:.4f}, Recall={detail['recall']:.4f}, AP={detail['ap']:.4f}\n\n")
+                
+                f.write("TOP 5 DOCUMENTOS RECUPERADOS:\n")
+                for j, doc in enumerate(detail['retrieved_docs'][:5]):
+                    title = doc.get('title', 'Sin título')
+                    doc_id = doc.get('id', 'ID desconocido')
+                    is_relevant = "✓ RELEVANTE" if str(doc_id) in detail['matches'] else "✗ NO RELEVANTE"
+                    
+                    f.write(f"  {j+1}. [{is_relevant}] {title}\n")
+                    if 'snippet' in doc:
+                        snippet = doc['snippet']
+                        if len(snippet) > 150:
+                            snippet = snippet[:147] + "..."
+                        f.write(f"     {snippet}\n")
+                f.write("\n")
+
         if not save_only_table:
             # Análisis de resultados
             f.write("=======================================================\n")
@@ -240,7 +293,7 @@ def main():
     print(f"Precision promedio: {sum(precisions)/consultas_validas:.4f}")
     print(f"Recall promedio: {sum(recalls)/consultas_validas:.4f}")
     print(f"MAP: {MAP:.4f}")
-    print(f"\nEl análisis {'resumido' if save_only_table else 'completo'} se ha guardado en: {analysis_file}")
+    print(f"\nEl análisis {'resumido con ejemplos' if save_only_table else 'completo'} se ha guardado en: {analysis_file}")
 
 if __name__ == '__main__':
     main()
