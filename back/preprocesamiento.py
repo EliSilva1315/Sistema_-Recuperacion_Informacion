@@ -5,6 +5,7 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 import nltk
 from cargar_corpus import cargar_corpus 
+from nltk.stem import PorterStemmer
 
 # Descargar recursos necesarios
 nltk.download('punkt')
@@ -31,9 +32,15 @@ def preprocesar_texto():
     lemmatizer = WordNetLemmatizer()
     corpusdf['lem_tokens'] = corpusdf['sw_tokens'].apply(
         lambda tokens: [lemmatizer.lemmatize(t) for t in tokens])
+    
+    #semantizar los tokens
+    stemmer = PorterStemmer()
+    corpusdf['stem_tokens'] = corpusdf['lem_tokens'].apply(
+        lambda tokens: [stemmer.stem(t) for t in tokens])
+
 
     # Unir los tokens lematizados en una sola cadena
-    corpusdf['preprocesado'] = corpusdf['lem_tokens'].apply(lambda tokens: ' '.join(tokens))
+    corpusdf['preprocesado'] = corpusdf['stem_tokens'].apply(lambda tokens: ' '.join(tokens))
 
     # Retornar el DataFrame completo con todos los documentos preprocesados
     return corpusdf
