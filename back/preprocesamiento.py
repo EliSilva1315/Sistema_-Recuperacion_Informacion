@@ -31,9 +31,14 @@ def preprocesar_texto():
     lemmatizer = WordNetLemmatizer()
     corpusdf['lem_tokens'] = corpusdf['sw_tokens'].apply(
         lambda tokens: [lemmatizer.lemmatize(t) for t in tokens])
-
+    
+    #semantizar los tokens 
+    semantizar_token = lambda token: token 
+    corpusdf['sem_tokens'] = corpusdf['lem_tokens'].apply(
+        lambda tokens: [semantizar_token(t) for t in tokens])
+    
     # Unir los tokens lematizados en una sola cadena
-    corpusdf['preprocesado'] = corpusdf['lem_tokens'].apply(lambda tokens: ' '.join(tokens))
+    corpusdf['preprocesado'] = corpusdf['sem_tokens'].apply(lambda tokens: ' '.join(tokens))
 
     # Retornar el DataFrame completo con todos los documentos preprocesados
     return corpusdf
