@@ -4,6 +4,7 @@ from preprocesamiento import preprocesar_texto
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from rank_bm25 import BM25Okapi
 import json
 from collections import Counter
 import time
@@ -15,63 +16,62 @@ CORS(app)
 corpus_preprocesado = None
 vectorizer = None
 tfidf_matrix = None
+bm25_model = None
+tokenized_corpus = None
 documents_data = []
 
 def inicializar_sistema():
-    """Inicializa el sistema preprocesando el corpus y creando matrices TF-IDF"""
-    global corpus_preprocesado, vectorizer, tfidf_matrix, documents_data
+    """Inicializa el sistema preprocesando el corpus y creando matrices TF-IDF y BM25"""
+    global corpus_preprocesado, vectorizer, tfidf_matrix, bm25_model, tokenized_corpus, documents_data
     
-    print("🔄 Iniciando preprocesamiento del corpus...")
     try:
-        # Preprocesar corpus (retorna DataFrame de pandas)
+        print("🔄 Iniciando preprocesamiento del corpus...")
         corpus_preprocesado = preprocesar_texto()
-        print("✅ Preprocesamiento completado exitosamente")
-        print(f"📊 Documentos procesados: {len(corpus_preprocesado)}")
         
-        # Preparar datos para vectorización
-        print("🔄 Creando matriz TF-IDF...")
-        documents_data = []
-        texts_for_vectorization = []
+        if corpus_preprocesado is None or corpus_preprocesado.empty:
+            print("❌ Error: Corpus preprocesado está vacío")
+            return False
         
-        # Iterar sobre el DataFrame
-        for index, row in corpus_preprocesado.iterrows():
-            # Crear diccionario con datos del documento
-            doc_dict = {
-                'id': int(index),
-                'text_original': row.get('text', ''),
-                'text_preprocesado': row.get('preprocesado', ''),
-                'tokens': row.get('lem_tokens', []),
-                'url': row.get('url', ''),
-                'title': row.get('title', f'Documento {index}'),
-                # Agregar cualquier otro campo que pueda existir en el corpus.jsonl
-            }
-            
-            # Agregar dinámicamente otros campos del JSONL
-            for col in corpus_preprocesado.columns:
-                if col not in ['text', 'preprocesado', 'lem_tokens', 'regex_tokens', 'sw_tokens']:
-                    doc_dict[col] = row.get(col, '')
-            
-            documents_data.append(doc_dict)
-            # Usar el texto preprocesado para vectorización
-            texts_for_vectorization.append(row.get('preprocesado', ''))
+        print(f"✅ Corpus preprocesado: {len(corpus_preprocesado)} documentos")
+        
+        # Crear lista de textos para vectorización TF-IDF
+        texts_for_vectorization = corpus_preprocesado['preprocesado'].tolist()
         
         # Crear vectorizador TF-IDF
+        print("🔄 Creando vectorizador TF-IDF...")
         vectorizer = TfidfVectorizer(
-            max_features=10000,  # Limitar características para eficiencia
-            stop_words=None,     # Ya se removieron en preprocesamiento
-            ngram_range=(1, 2),  # Unigramas y bigramas
-            min_df=2,           # Ignorar términos muy raros
-            max_df=0.95,        # Ignorar términos muy comunes
-            token_pattern=r'\b\w+\b'  # Patrón simple para tokens ya procesados
+            max_features=10000,
+            stop_words=None,
+            ngram_range=(1, 2),
+            min_df=2,
+            max_df=0.95,
+            token_pattern=r'\b\w+\b'
         )
         
-        # Crear matriz TF-IDF usando texto preprocesado
+        # Crear matriz TF-IDF
         tfidf_matrix = vectorizer.fit_transform(texts_for_vectorization)
+        print(f"✅ Matriz TF-IDF creada: {tfidf_matrix.shape}")
         
-        print("✅ Matriz TF-IDF creada exitosamente")
-        print(f"📊 Dimensiones de matriz: {tfidf_matrix.shape}")
-        print(f"🔤 Vocabulario: {len(vectorizer.vocabulary_)} términos")
+        # Crear modelo BM25
+        print("🔄 Creando modelo BM25...")
+        # Tokenizar el corpus para BM25 (usa tokens ya lematizados)
+        tokenized_corpus = [doc.split() for doc in texts_for_vectorization]
+        bm25_model = BM25Okapi(tokenized_corpus)
+        print(f"✅ Modelo BM25 creado con {len(tokenized_corpus)} documentos")
         
+        # Preparar datos de documentos
+        documents_data = []
+        for idx, row in corpus_preprocesado.iterrows():
+            doc_data = {
+                'id': idx,
+                'title': row.get('title', f'Documento {idx}'),
+                'text_original': row.get('text', ''),
+                'text_preprocesado': row.get('preprocesado', ''),
+                'tokens': row.get('lem_tokens', [])
+            }
+            documents_data.append(doc_data)
+        
+        print(f"✅ Sistema inicializado con TF-IDF + BM25")
         return True
         
     except Exception as e:
@@ -281,6 +281,128 @@ def busqueda_con_expansion_query(query, limit=10, expansion_terms=3):
         print(f"❌ Error en expansión de consulta: {e}")
         return busqueda_por_similitud_coseno(query, limit, threshold=0.05)
 
+def busqueda_hibrida_tfidf_bm25(query, limit=10, threshold=0.1):
+    """
+    Realiza búsqueda híbrida comparando TF-IDF y BM25
+    """
+    try:
+        print("\n" + "="*60)
+        print(f"🚀 INICIANDO BÚSQUEDA HÍBRIDA TF-IDF + BM25")
+        print("="*60)
+        
+        # Preprocesar la query
+        processed_query = preprocesar_query(query)
+        query_tokens = processed_query.split()
+        
+        if not processed_query.strip():
+            print("⚠️ Query preprocesada está vacía")
+            return []
+        
+        print(f"🔍 Query original: '{query}'")
+        print(f"🔍 Query preprocesada: '{processed_query}'")
+        print(f"🔍 Tokens de query: {query_tokens}")
+        
+        # 1. BÚSQUEDA CON TF-IDF
+        print(f"\n📊 EJECUTANDO BÚSQUEDA TF-IDF")
+        print("-" * 40)
+        
+        query_vector = vectorizer.transform([processed_query])
+        tfidf_similarities = cosine_similarity(query_vector, tfidf_matrix).flatten()
+        tfidf_sorted_indices = np.argsort(tfidf_similarities)[::-1]
+        
+        print(f"📈 TF-IDF - Similitud máxima: {tfidf_similarities.max():.4f}")
+        print(f"📊 TF-IDF - Similitud promedio: {tfidf_similarities.mean():.4f}")
+        
+        # 2. BÚSQUEDA CON BM25
+        print(f"\n🎯 EJECUTANDO BÚSQUEDA BM25")
+        print("-" * 40)
+        
+        bm25_scores = bm25_model.get_scores(query_tokens)
+        bm25_sorted_indices = np.argsort(bm25_scores)[::-1]
+        
+        print(f"📈 BM25 - Score máximo: {bm25_scores.max():.4f}")
+        print(f"📊 BM25 - Score promedio: {bm25_scores.mean():.4f}")
+        
+        # 3. COMPARAR Y SELECCIONAR MEJOR MÉTODO
+        print(f"\n⚖️ COMPARANDO MÉTODOS")
+        print("-" * 40)
+        
+        # Normalizar scores BM25 para comparación
+        bm25_normalized = bm25_scores / (bm25_scores.max() + 1e-8) if bm25_scores.max() > 0 else bm25_scores
+        
+        # Calcular métricas de calidad para cada método
+        tfidf_top_scores = [tfidf_similarities[idx] for idx in tfidf_sorted_indices[:5]]
+        bm25_top_scores = [bm25_normalized[idx] for idx in bm25_sorted_indices[:5]]
+        
+        tfidf_quality = np.mean(tfidf_top_scores) if tfidf_top_scores else 0
+        bm25_quality = np.mean(bm25_top_scores) if bm25_top_scores else 0
+        
+        # Decidir qué método usar
+        if tfidf_quality > bm25_quality:
+            selected_method = "TF-IDF"
+            selected_similarities = tfidf_similarities
+            selected_indices = tfidf_sorted_indices
+            reason = f"Mayor calidad promedio en top 5: {tfidf_quality:.4f} vs {bm25_quality:.4f}"
+        else:
+            selected_method = "BM25"
+            selected_similarities = bm25_normalized
+            selected_indices = bm25_sorted_indices
+            reason = f"Mayor calidad promedio en top 5: {bm25_quality:.4f} vs {tfidf_quality:.4f}"
+        
+        print(f"🏆 Método seleccionado: {selected_method}")
+        print(f"💡 Razón: {reason}")
+        print(f"📊 TF-IDF calidad: {tfidf_quality:.4f}")
+        print(f"📊 BM25 calidad: {bm25_quality:.4f}")
+        
+        # 4. GENERAR RESULTADOS CON EL MÉTODO SELECCIONADO
+        print(f"\n🎯 GENERANDO RESULTADOS CON {selected_method}")
+        print("-" * 40)
+        
+        results = []
+        for idx in selected_indices:
+            similarity_score = selected_similarities[idx]
+            
+            # Aplicar umbral
+            if similarity_score < threshold:
+                break
+                
+            doc = documents_data[idx].copy()
+            doc['similarity_score'] = float(similarity_score)
+            doc['rank'] = len(results) + 1
+            doc['method_used'] = selected_method
+            doc['method_reason'] = reason
+            
+            # Agregar scores de ambos métodos para comparación
+            doc['tfidf_score'] = float(tfidf_similarities[idx])
+            doc['bm25_score'] = float(bm25_scores[idx])
+            doc['bm25_normalized'] = float(bm25_normalized[idx])
+            
+            # Preview del texto
+            if 'text_original' in doc:
+                doc['preview'] = doc['text_original'][:200] + "..." if len(doc['text_original']) > 200 else doc['text_original']
+            
+            results.append(doc)
+            print(f"  ✅ Doc {idx}: {similarity_score:.4f} - {doc.get('title', f'Documento {idx}')[:50]}")
+            
+            if len(results) >= limit:
+                break
+        
+        print(f"\n✅ RESUMEN FINAL HÍBRIDO:")
+        print("-" * 40)
+        print(f"🏆 Método usado: {selected_method}")
+        print(f"💡 Razón: {reason}")
+        print(f"📊 Resultados finales: {len(results)}")
+        print(f"🎯 Umbral usado: {threshold}")
+        print("="*60)
+        
+        return results
+        
+    except Exception as e:
+        print(f"❌ Error en búsqueda híbrida: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
+
 # Ruta básica para verificar que el servidor funciona
 @app.route('/')
 def home():
@@ -308,23 +430,29 @@ def search():
             "query": query
         }), 400
     
-    if corpus_preprocesado is None or tfidf_matrix is None:
+    if corpus_preprocesado is None or tfidf_matrix is None or bm25_model is None:
         return jsonify({
             "error": "Sistema no inicializado. Preprocesamiento pendiente.",
             "query": query
         }), 503
     
-    # Medir tiempo de búsqueda
     start_time = time.time()
     
     try:
-        # Realizar búsqueda
+        # Usar búsqueda híbrida por defecto
         if use_expansion:
             results = busqueda_con_expansion_query(query, limit)
         else:
-            results = busqueda_por_similitud_coseno(query, limit, threshold)
+            results = busqueda_hibrida_tfidf_bm25(query, limit, threshold)
         
         search_time = time.time() - start_time
+        
+        # Extraer información del método usado
+        method_used = "Híbrido (TF-IDF + BM25)"
+        method_reason = ""
+        if results:
+            method_used = f"Híbrido: {results[0].get('method_used', 'Desconocido')}"
+            method_reason = results[0].get('method_reason', '')
         
         return jsonify({
             "query": query,
@@ -333,7 +461,10 @@ def search():
             "corpus_size": len(corpus_preprocesado),
             "search_time": round(search_time, 3),
             "expansion_used": use_expansion,
-            "threshold": threshold
+            "threshold": threshold,
+            "method_used": method_used,
+            "method_reason": method_reason,
+            "search_type": "hybrid_tfidf_bm25"
         })
         
     except Exception as e:
