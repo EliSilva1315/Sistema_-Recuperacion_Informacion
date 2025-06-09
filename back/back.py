@@ -8,6 +8,7 @@ from rank_bm25 import BM25Okapi
 import json
 from collections import Counter
 import time
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -45,13 +46,14 @@ def inicializar_sistema():
             ngram_range=(1, 2),
             min_df=2,
             max_df=0.95,
-            token_pattern=r'\b\w+\b'
+            token_pattern=r'\b[a-zA-Z][a-zA-Z]+\b'  # Requiere al menos 2 letras y que empiece con letra
         )
         
         # Crear matriz TF-IDF
         tfidf_matrix = vectorizer.fit_transform(texts_for_vectorization)
         print(f"✅ Matriz TF-IDF creada: {tfidf_matrix.shape}")
-        
+        print(tfidf_matrix)
+
         # Crear modelo BM25
         print("🔄 Creando modelo BM25...")
         # Tokenizar el corpus para BM25 (usa tokens ya lematizados)
