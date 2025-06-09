@@ -5,6 +5,7 @@ from collections import defaultdict
 from back import busqueda_por_similitud_coseno, inicializar_sistema
 from datetime import datetime
 import random
+import os
 
 # Inicializar el sistema de recuperación
 def main():
@@ -295,5 +296,62 @@ def main():
     print(f"MAP: {MAP:.4f}")
     print(f"\nEl análisis {'resumido con ejemplos' if save_only_table else 'completo'} se ha guardado en: {analysis_file}")
 
+def mostrar_queries(ruta_archivo='/Users/eliasbolanos/Documents/querys/queries.jsonl'):
+    """
+    Muestra el contenido del archivo de queries en formato legible
+    """
+    if not os.path.exists(ruta_archivo):
+        print(f"❌ No se encontró el archivo: {ruta_archivo}")
+        return
+    
+    print(f"\n📋 CONTENIDO DE QUERIES.JSONL:")
+    print("=" * 80)
+    
+    try:
+        # Contar número total de queries
+        with open(ruta_archivo, 'r', encoding='utf-8') as file:
+            total_queries = sum(1 for _ in file)
+        
+        # Leer y mostrar el contenido
+        with open(ruta_archivo, 'r', encoding='utf-8') as file:
+            for i, line in enumerate(file, 1):
+                try:
+                    query = json.loads(line)
+                    query_id = query.get('id') or query.get('query_id') or query.get('_id', f"query_{i}")
+                    query_text = query.get('text') or query.get('query') or query.get('title', 'Sin texto')
+                    
+                    print(f"\n📌 QUERY {i}/{total_queries} - ID: {query_id}")
+                    print(f"└─ {query_text}")
+                except json.JSONDecodeError:
+                    print(f"\n⚠️ Error al decodificar la línea {i}: {line[:100]}...")
+        
+        print("\n" + "=" * 80)
+        print(f"✅ Total de queries: {total_queries}")
+        
+    except Exception as e:
+        print(f"❌ Error al leer el archivo: {e}")
+
 if __name__ == '__main__':
-    main()
+    # Preguntar al usuario qué acción realizar
+    print("\n🔍 SISTEMA DE EVALUACIÓN DE RECUPERACIÓN DE INFORMACIÓN")
+    print("=" * 60)
+    print("1. Ver queries.jsonl")
+    print("2. Ejecutar evaluación")
+    print("3. Salir")
+    
+    opcion = input("\nSelecciona una opción (1-3): ").strip()
+    
+    if opcion == '1':
+        ruta = input("Introduce la ruta del archivo queries.jsonl (o presiona Enter para usar la predeterminada): ")
+        if not ruta.strip():
+            ruta = '/Users/eliasbolanos/Documents/querys/queries.jsonl'
+        mostrar_queries(ruta)
+        exit()
+    elif opcion == '2':
+        main()
+    elif opcion == '3':
+        print("Saliendo del programa...")
+        exit()
+    else:
+        print("Opción no válida. Saliendo...")
+        exit()
