@@ -104,14 +104,14 @@
   transform: translateY(-50%);
   height: 48px;
   border-radius: $border-radius-full;
-  background-color: $color-primary;
-  color: $color-white;
+  color: $color-gray-500;
   font-weight: $font-weight-medium;
   transition: $transition-base;
   padding: 0 $spacing-4;
+  background-color: #FFF8F0;
   
   &:hover {
-    background-color: darken($color-primary, 7%);
+    background-color: darken( #FFF8F0, 7%);
   }
   
   &:focus {
@@ -210,6 +210,7 @@
   margin-top: $spacing-3;
   display: none;
   
+  
   &.visible {
     display: block;
   }
@@ -278,7 +279,7 @@
       gap: $spacing-1;
       
       button {
-        background: none;
+        background: #FFF8F0;
         border: none;
         color: $color-gray-600;
         cursor: pointer;

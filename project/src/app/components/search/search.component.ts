@@ -10,7 +10,7 @@ import { SearchService } from '../../services/search.service';
   template: `
     <div class="search-container" [class.has-results]="hasResults">
       <div class="search-header">
-        <h1>Búsqueda<strong>Inteligente</strong></h1>
+        <h1>Búsqueda <strong>Inteligente</strong></h1>
         <p class="lead">Encuentra lo que buscas con precisión y velocidad</p>
       </div>
       
@@ -34,14 +34,7 @@ import { SearchService } from '../../services/search.service';
           >
             <i class="fas fa-times"></i>
           </button>
-          
-          <button 
-            class="voice-search-button" 
-            [class.listening]="isListening"
-            (click)="toggleVoiceSearch()"
-          >
-            <i class="fas" [class.fa-microphone]="!isListening" [class.fa-microphone-slash]="isListening"></i>
-          </button>
+        
           
           <button 
             class="search-button"
@@ -105,15 +98,4 @@ export class SearchComponent {
     this.onSearch();
   }
   
-  toggleVoiceSearch() {
-    this.isListening = !this.isListening;
-    
-    if (this.isListening) {
-      setTimeout(() => {
-        this.searchQuery = 'ejemplo de búsqueda por voz';
-        this.isListening = false;
-        this.onSearch();
-      }, 2000);
-    }
-  }
 }

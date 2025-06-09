@@ -43,9 +43,3 @@ def preprocesar_texto():
     # Retornar el DataFrame completo con todos los documentos preprocesados
     return corpusdf
 
-#
-# Llamar a la función y mostrar solo el primer documento preprocesado
-#corpus_normalizado = cargar_corpus()
-#print('DOC NORMAL: ',corpus_normalizado['text'].iloc[0])
-#corpus_preprocesado = preprocesar_texto()
-#print('DOC PREPROCESADO: ',corpus_preprocesado['preprocesado'].iloc[0])

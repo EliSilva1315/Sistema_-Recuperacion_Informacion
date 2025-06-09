@@ -17,6 +17,7 @@
   transition: $transition-base;
   border: none;
   
+  
   &:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba($color-primary, 0.25);
@@ -62,7 +63,7 @@
   
   // Style variants
   &.btn-primary {
-    background-color: $color-primary;
+    background-color: #FFF8F0;
     color: $color-white;
     
     &:hover, &:focus {
